@@ -57,7 +57,7 @@ class Autoenc_gan():
                  learning_rate_decay_steps=10000,
                  iterations=20000,
                  display_every=100,
-                 test_every=1000,
+                 test_every=100,
                  batch_size=16,
                  dtype=tf.float32,
                  name_scope='VAESkeleton'):
@@ -151,13 +151,14 @@ class Autoenc_gan():
                 for action in dataset.actions:
                     encoder_data, discriminator, yhat = dataset.get_test_batch(action)
                     self.TestSample(sess, encoder_data, discriminator,action)
-            if(self.steps % 2000 == 0):
-                self.InferenceSample(sess, dataset,self.steps)
+            # if(self.steps % 2000 == 0):
+                # self.InferenceSample(sess, dataset,self.steps)
                 #self.Saver.save(sess, self.modelname, global_step=self.steps)
+                
             if(self.steps % 2000 == 0):
-                self.Saver.save(sess, 'Models/'+self.modelname, global_step=self.steps)
+                self.Saver.save(sess, '/media/data/zaveri/CNN/Models/'+self.modelname, global_step=self.steps)
 
-        self.Saver.save(sess, 'Models/'+self.modelname, global_step=self.steps)
+        self.Saver.save(sess, '/media/data/zaveri/CNN/Models/'+self.modelname, global_step=self.steps)
 
     def TestSample(self, sess, encoder_input, decoder_expect_output,action):
         if self.dataset_name=='human3.6m':
@@ -167,6 +168,13 @@ class Autoenc_gan():
                                               feed_dict={self.encoder_input: encoder_input,
                                                          self.discriminator_input: decoder_expect_output,
                                                          self.is_training: False})
+                print("Trying to save walking ")
+
+                np.save('/media/data/zaveri/CNN/poses/walking_predict.npy', predict_pose)
+
+                np.save('/media/data/zaveri/CNN/poses/walking_encoder_input.npy', encoder_input)
+                np.save('/media/data/zaveri/CNN/poses/walking_discriminator_input.npy', decoder_expect_output)
+
                 self.log_file_write.add_summary(summ, self.steps)
             if action == 'eating':
                 predict_pose, summ = sess.run([self.test_res, self.eating_error_summ],
@@ -308,8 +316,8 @@ class Autoenc_gan():
     def InferenceSample(self, sess,dataset,iter):
 
         one_hot=False
-        srnn_gts_expmap = dataset.get_srnn_gts(one_hot, to_euler=False)
-        srnn_gts_euler=dataset.get_srnn_gts(one_hot, to_euler=True)
+        # srnn_gts_expmap = dataset.get_srnn_gts(one_hot, to_euler=False)
+        # srnn_gts_euler=dataset.get_srnn_gts(one_hot, to_euler=True)
 
         SAMPLES_FNAME = "./samples/{}-{}.h5".format(self.modelname,iter)
         # try:
@@ -327,9 +335,16 @@ class Autoenc_gan():
                            feed_dict={self.encoder_input: encoder_input,
                                       self.discriminator_input: decoder_expect_output, 
                                       self.is_training: False})
+
+                        # Direct saving as for euclidean input
+            pred_pose = np.squeeze(predict_pose)
+            np.save('/media/data/zaveri/CNN/poses/pred/' + action, pred_pose)
+            np.save('/media/data/zaveri/CNN/poses/input/' + action, encoder_input)
+            np.save('/media/data/zaveri/CNN/poses/pred_gt/' + action, decoder_expect_output)
+
             time=timeit.default_timer()-start_time
             step_time.append(time)
-            dataset.compute_test_error(action, predict_pose, srnn_gts_expmap, srnn_gts_euler, one_hot, SAMPLES_FNAME)
+            # dataset.compute_test_error(action, predict_pose, srnn_gts_expmap, srnn_gts_euler, one_hot, SAMPLES_FNAME)
         print (np.mean(step_time))
 
     def TrainDStep(self, sess, encoder_input, yhat, discriminator_input):
@@ -490,7 +505,8 @@ class Autoenc_gan():
                 shp = w.get_shape().as_list()
                 print("- {} shape:{} size:{}".format(w.name, shp, np.prod(shp)))
 
-            self.loss_Auto = ReconstructError + self.gan_loss_weight * g_loss
+            # self.loss_Auto = ReconstructError + self.gan_loss_weight * g_loss
+            self.loss_Auto = ReconstructError
 
             self.loss_Auto_reg = self.loss_Auto + tf.reduce_sum(enc_reg) + tf.reduce_sum(dec_reg)
 

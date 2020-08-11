@@ -14,7 +14,7 @@ class ACEncoder(VAE.EncoderBase):
     def __init__(self, nfilters,re_term,
                  enc_dim=527,
                  enc_dim_desc={'hidden_num':512, 'class_num': 15},
-                 enc_shape=[None, 49, 54, 1], name_scope='EncoderSkeleton'):
+                 enc_shape=[None, 49, 96, 1], name_scope='EncoderSkeleton'):
         super(ACEncoder, self).__init__(enc_shape,
                                         enc_dim,
                                         enc_dim_desc,
@@ -30,11 +30,10 @@ class ACEncoder(VAE.EncoderBase):
             lrelu = VAE.lrelu
 
             if(with_batchnorm):
-                print('here')
-                h0 = lrelu(tcl.batch_norm(tcl.conv2d(encoder_inputs,
+                h0 = tcl.batch_norm(tcl.conv2d(encoder_inputs,
                                                      num_outputs=self.nfilters * 4,
                                                      stride=2,
-                                                     kernel_size=[2, 7],
+                                                     kernel_size=[4, 14],
                                                      activation_fn=None,
                                                      padding='SAME',
                                                      biases_initializer=None,
@@ -42,12 +41,12 @@ class ACEncoder(VAE.EncoderBase):
                                                      scope="conv1"),
                                           scope='bn1',
                                           trainable=trainable,
-                                          is_training=is_training))
+                                          is_training=is_training)
                 
-                h0 = lrelu(tcl.batch_norm(tcl.conv2d(h0,
+                h0 = tcl.batch_norm(tcl.conv2d(h0,
                                                      num_outputs=self.nfilters * 4,
                                                      stride=2,
-                                                     kernel_size=[2, 7],
+                                                     kernel_size=[4, 14],
                                                      activation_fn=None,
                                                      padding='SAME',
                                                      scope="conv2",
@@ -55,14 +54,14 @@ class ACEncoder(VAE.EncoderBase):
                                                      biases_initializer=None),
                                           trainable=trainable,
                                           scope='bn2',
-                                          is_training=is_training))
+                                          is_training=is_training)
 
                 h0 = tcl.dropout(h0, 0.8, is_training=is_training)
                 
-                h0 = lrelu(tcl.batch_norm(tcl.conv2d(h0,
+                h0 = tcl.batch_norm(tcl.conv2d(h0,
                                                  num_outputs=self.nfilters * 8,
                                                      stride=2,
-                                                     kernel_size=[2, 7],
+                                                     kernel_size=[4, 14],
                                                      activation_fn=None,
                                                      padding='SAME',
                                                      scope="conv3",
@@ -70,39 +69,39 @@ class ACEncoder(VAE.EncoderBase):
                                                      biases_initializer=None),
                                           trainable=trainable,
                                           scope='bn3',
-                                          is_training=is_training))
+                                          is_training=is_training)
             else:
-                h0 = lrelu(tcl.conv2d(encoder_inputs,
+                h0 = tcl.conv2d(encoder_inputs,
                                       num_outputs=self.nfilters * 4,
                                       stride=2,
-                                      kernel_size=[2, 7],
+                                      kernel_size=[4, 14],
                                       activation_fn=None,
                                       padding='SAME',
                                       biases_initializer=None,
                                       weights_regularizer=tcl.l2_regularizer(self.re_term),
-                                      scope="conv1"))
+                                      scope="conv1")
                 h0 = tcl.dropout(h0, 0.8, is_training=is_training)
-                h0 = lrelu(tcl.conv2d(h0,
+                h0 = tcl.conv2d(h0,
                                       num_outputs=self.nfilters * 8,
                                       stride=2,
-                                      kernel_size=[2, 7],
+                                      kernel_size=[4, 14],
                                       activation_fn=None,
                                       padding='SAME',
                                       scope="conv2",
                                       weights_regularizer=tcl.l2_regularizer(self.re_term),
-                                      biases_initializer=None))
+                                      biases_initializer=None)
                 h0 = tcl.dropout(h0, 0.8, is_training=is_training)
 
 
-                h0 = lrelu(tcl.conv2d(h0,
+                h0 = tcl.conv2d(h0,
                                       num_outputs=self.nfilters * 8,
                                       stride=2,
-                                      kernel_size=[2, 7],
+                                      kernel_size=[4, 14],
                                       activation_fn=None,
                                       padding='SAME',
                                       scope="conv3",
                                       weights_regularizer=tcl.l2_regularizer(self.re_term),
-                                      biases_initializer=None))
+                                      biases_initializer=None)
                 h0 = tcl.dropout(h0, 0.5, is_training=is_training)
 
 
@@ -117,11 +116,11 @@ class ACEncoder(VAE.EncoderBase):
                                       
 class AEDecoder(VAE.DecoderBase):
     def __init__(self, nfilters,re_term):
-        super(AEDecoder, self).__init__([None, 128], [None, 15], [None, 1, 54, 1], 'DecoderSkeleton')
+        super(AEDecoder, self).__init__([None, 128], [None, 15], [None, 1, 96, 1], 'DecoderSkeleton')
         self.nfilters = nfilters
         self.re_term=re_term
         self.encoder = ACEncoder(nfilters,self.re_term,
-                                 enc_shape=[None, 20, 54, 1],
+                                 enc_shape=[None, 20, 96, 1],
                                  enc_dim=512,
                                  enc_dim_desc={'hidden_num':512},
                                  name_scope='DecoderSkeletonEnc')
@@ -138,15 +137,18 @@ class AEDecoder(VAE.DecoderBase):
             
             y = tf.concat([decoder_hidden, dec_in_enc], 1)
 
-            h0 = tcl.fully_connected(y, 512, scope="fc3", activation_fn=lrelu, weights_regularizer=tcl.l2_regularizer(self.re_term))
+            # h0 = tcl.fully_connected(y, 512, scope="fc3", activation_fn=lrelu, weights_regularizer=tcl.l2_regularizer(self.re_term))
+            h0 = tcl.fully_connected(y, 512, scope="fc3", activation_fn=None, weights_regularizer=tcl.l2_regularizer(self.re_term))
 
             h0 = tcl.dropout(h0, 0.5, is_training=is_training)
 
-        
-            
-            h0 = tcl.fully_connected(h0, 54, scope="fc4", activation_fn=None,
+            h0 = tcl.fully_connected(h0, 96, scope="fc4", activation_fn=None,
                                      weights_regularizer=tcl.l2_regularizer(self.re_term),)
-
+            # h0 = lrelu(tcl.fully_connected(h0, 96, scope="fc4", activation_fn=None,
+            #                          weights_regularizer=tcl.l2_regularizer(self.re_term),))
+            # h0 = tcl.fully_connected(h0, 96, scope="fc5", activation_fn=None,
+            #                          weights_regularizer=tcl.l2_regularizer(self.re_term),)
+            
             h0 = tf.expand_dims(tf.expand_dims(h0, 1), 3)
 
             
@@ -154,12 +156,12 @@ class AEDecoder(VAE.DecoderBase):
 
 class Discriminator(VAE.DiscriminatorBase):
     def __init__(self, nfilters, re_term):
-        super(Discriminator, self).__init__([None, 75, 54, 1],
+        super(Discriminator, self).__init__([None, 75, 96, 1],
                                                  15,
                                                  "DiscriminatorSkeleton")
         self.nfilters = nfilters
         self.encoder = ACEncoder(nfilters, re_term,
-                                 enc_shape=[None, 75, 54, 1],
+                                 enc_shape=[None, 75, 96, 1],
                                  enc_dim=512,
                                  enc_dim_desc={'hidden_num':512},
                                  name_scope='DiscriminatorSkeletonEnc')

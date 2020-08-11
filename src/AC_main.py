@@ -23,13 +23,14 @@ def str2bool(v):
 parse = argparse.ArgumentParser()
 
 parse.add_argument("--l2regWeight", help="the weight of l2 regularizer", default=0.001, type=float)
+# parse.add_argument("--gan_loss_weight", help="the weight of gan loss", default=0.01, type=float)
 parse.add_argument("--gan_loss_weight", help="the weight of gan loss", default=0.01, type=float)
 parse.add_argument("--batch_size", help="the batch size used in trainning", default=16, type=int)
 parse.add_argument("--use_sampling", help="use predict resutls in training instead of ground truth", type=float, default=0.95)
 parse.add_argument("--window_length",help="how many previous frames should be used to predict the current frame",type=int,default=20)
-parse.add_argument("--output_length",help="how many previous frames should be used to predict the current frame",type=int,default=25)
+parse.add_argument("--output_length",help="how many previous frames should be used to predict the current frame",type=int,default=100)
 parse.add_argument("--is_sampling",help="the current phase",type=bool,default=False)
-parse.add_argument("--checkpoint", help="specify which model to load in", default=20000, type=int)
+parse.add_argument("--checkpoint", help="specify which model to load in", default=16000, type=int)
 parse.add_argument("--dataset",help="choose a dataset for training",default="human3.6m",type=str)
 args = parse.parse_args()
 
@@ -45,7 +46,9 @@ if args.dataset=="human3.6m":
     encoder = humanEncoder.ACEncoder(16, re_term)
     decoder = humanEncoder.AEDecoder(16, re_term)
     discriminator = humanEncoder.Discriminator(32, re_term)
-    inputDimension=54
+    # inputDimension=54
+
+    inputDimension=96
 
     ###---------train on the cmu dataset,the difference is that the input dimension is 70 ------------------
 else:
@@ -73,7 +76,7 @@ model_name = 'CNNAdTrain_GANWEIGHT%f_Sampling%fWindownLength%d' % (args.gan_loss
 VAETrain = VAE.Autoencoder_gan.Autoenc_gan(encoder,
                                            decoder,
                                            discriminator,
-                                           [None, 75, inputDimension, 1] if not args.is_sampling else [None,50+args.output_length,70,1],
+                                           [None, 75, inputDimension, 1] if not args.is_sampling else [None,50+args.output_length,inputDimension,1],
                                            50,
                                            25 if not args.is_sampling else args.output_length,
                                            modelname=model_name,
@@ -93,5 +96,7 @@ with tf.Session() as sess:
         VAETrain.Train(sess, dloader)
     else:
         # VAETrain.Saver.restore(sess,'./Models/Models_kernel54/{}-{}'.format(model_name,args.checkpoint))
-        VAETrain.Saver.restore(sess, './Models/{}-{}'.format(model_name, args.checkpoint))
-        VAETrain.InferenceSample(sess,dloader)
+        VAETrain.Saver.restore(sess,'/media/data/zaveri/CNN/Models/{}-{}'.format(model_name,args.checkpoint))
+        # VAETrain.InferenceSample(sess,dloader)
+        VAETrain.InferenceSample(sess,dloader,args.checkpoint)
+

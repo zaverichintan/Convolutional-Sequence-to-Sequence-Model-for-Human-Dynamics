@@ -89,21 +89,21 @@ class DataLoader(object):
         test_set,  complete_test  = data_utils.load_data( data_dir, test_subject_ids,  actions, one_hot )
 
         # Compute normalization stats
-        data_mean, data_std,  dim_to_ignore, dim_to_use = data_utils.normalization_stats(complete_train)
+        # data_mean, data_std,  dim_to_ignore, dim_to_use = data_utils.normalization_stats(complete_train)
 
         # Normalize -- subtract mean, divide by stdev
-        train_set = data_utils.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
-        test_set  = data_utils.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
+        # train_set = data_utils.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
+        # test_set  = data_utils.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
         print("done reading data.")
 
         self.train_set = train_set
         self.test_set = test_set
 
-        self.data_mean = data_mean
-        self.data_std = data_std
+        # self.data_mean = data_mean
+        # self.data_std = data_std
 
-        self.dim_to_ignore = dim_to_ignore
-        self.dim_to_use = dim_to_use
+        # self.dim_to_ignore = dim_to_ignore
+        # self.dim_to_use = dim_to_use
 
         self.train_keys = list(self.train_set.keys())
         
@@ -158,14 +158,9 @@ class DataLoader(object):
         prefix, suffix = 50, 100
         
         idx = []
-        idx.append( rng.randint( 16,T1-prefix-suffix ))
-        idx.append( rng.randint( 16,T2-prefix-suffix ))
-        idx.append( rng.randint( 16,T1-prefix-suffix ))
-        idx.append( rng.randint( 16,T2-prefix-suffix ))
-        idx.append( rng.randint( 16,T1-prefix-suffix ))
-        idx.append( rng.randint( 16,T2-prefix-suffix ))
-        idx.append( rng.randint( 16,T1-prefix-suffix ))
-        idx.append( rng.randint( 16,T2-prefix-suffix ))
+        for i in range(128):
+            idx.append(rng.randint(16, T1 - prefix - suffix))
+            idx.append(rng.randint(16, T2 - prefix - suffix))
         return idx
 
     def get_test_batch(self, action):
@@ -179,7 +174,7 @@ class DataLoader(object):
         frames = {}
         frames[ action ] = self.find_indices_srnn( action )
 
-        batch_size = 8 # we always evaluate 8 seeds
+        batch_size = 256 # we always evaluate 8 seeds
         subject    = 5 # we always evaluate on subject 5
         source_seq_len = self.seq_length_in
         target_seq_len = self.seq_length_out

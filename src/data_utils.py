@@ -212,6 +212,15 @@ def readCSVasFloat(filename):
   returnArray = np.array(returnArray)
   return returnArray
 
+import mocap.datasets.h36m as H36M
+
+DS_H36M = H36M.H36M_FixedSkeleton(
+    remove_global_Rt=True,
+    actors=['S1', 'S6', 'S7', 'S8', 'S9', 'S11', 'S5'])
+
+from mocap.datasets.combined import Combined
+
+# DS_H36M = Combined(DS_H36M)
 
 def load_data(path_to_dataset, subjects, actions, one_hot):
   """
@@ -242,8 +251,11 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
         print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
 
         filename = '{0}/S{1}/{2}_{3}.txt'.format(path_to_dataset, subj, action, subact)
-        action_sequence = readCSVasFloat(filename)
-
+        action_sequence_old = readCSVasFloat(filename)
+        # print(action_sequence_old.shape)
+        action_sequence = DS_H36M.get_sequence_by_key(('S' + str(subj), action, subact))
+        action_sequence = action_sequence + 1
+        print(action_sequence.shape)
         n, d = action_sequence.shape
         even_list = range(0, n, 2)
 
@@ -320,7 +332,7 @@ def normalization_stats(completeData):
   """
 
 
-  completeDataN = np.reshape(completeData, [completeData.shape[0], 33, 3])
+  completeDataN = np.reshape(completeData, [completeData.shape[0], 32, 3])
 
 
   theta = np.linalg.norm(completeDataN, axis=2)
@@ -332,17 +344,17 @@ def normalization_stats(completeData):
 
   nData = completeDataN * np.expand_dims(theta, axis=2)
 
-  nData = np.reshape(nData, [nData.shape[0], 99])
+  nData = np.reshape(nData, [nData.shape[0], 96])
   
   
   data_mean = np.mean(nData, axis=0)
   data_std  =  np.std(nData, axis=0)
 
   dimensions_to_ignore = []
-  dimensions_to_use    = []
+  dimensions_to_use    = list(range(96))
 
-  dimensions_to_ignore.extend( list(np.where(data_std < 1e-4)[0]))
-  dimensions_to_use.extend( list(np.where(data_std >= 1e-4)[0]))
+  # dimensions_to_ignore.extend( list(np.where(data_std < 1e-4)[0]))
+  # dimensions_to_use.extend( list(np.where(data_std >= 1e-4)[0]))
 
   data_std[dimensions_to_ignore] = 1.0
 
